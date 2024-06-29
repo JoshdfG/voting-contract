@@ -85,7 +85,6 @@ pub mod Voting {
 
     #[abi(embed_v0)]
     impl VotingImpl of super::IVoting<ContractState> {
-        // register voter
         fn register_voter(ref self: ContractState, voter: ContractAddress) -> bool {
             self.only_owner();
 
@@ -100,7 +99,6 @@ pub mod Voting {
             true
         }
 
-        //add candidate
         fn add_candidate(ref self: ContractState, name: felt252) -> bool {
             self.only_owner();
 
@@ -112,62 +110,50 @@ pub mod Voting {
 
             self.candidateId.write(current_candidate_id);
 
-            //event
             self.emit(CandidateAdded { id: current_candidate_id, name: name });
 
             true
         }
 
-        //vote
         fn vote(ref self: ContractState, candidate_index: u8) -> bool {
             let user_address = get_caller_address();
             assert(user_address != self.owner.read(), 'owner should not call');
 
-            //check if registered
             let check_registered = self.voters.read(user_address).is_registered;
             assert(check_registered, 'Not registered');
 
-            //check whether user has voted already
             let check_has_voted = self.voters.read(user_address).has_voted;
             assert(!check_has_voted, 'Already voted');
 
-            //allow voting
             let mut candidate = self.candidates.read(candidate_index);
             candidate.vote_count += 1;
             self.candidates.write(candidate_index, candidate);
 
-            //update voter's data
             let mut voter = self.voters.read(user_address);
             voter.has_voted = true;
             self.voters.write(user_address, voter);
 
-            //event
             self.emit(Voted { voted_id: candidate_index, voter_address: user_address });
 
             true
         }
 
-        //get candidate by index
         fn get_candidate(self: @ContractState, index: u8) -> Candidate {
             let candidate = self.candidates.read(index);
             candidate
         }
 
-        //get candidate's vote
         fn get_candidate_vote(self: @ContractState, index: u8) -> u32 {
             let candidate_vote = self.candidates.read(index).vote_count;
             candidate_vote
         }
 
-        //check if voter has VoterRegistered
         fn check_voter_eligibility(self: @ContractState, voter_address: ContractAddress) -> bool {
             let voter_is_registered = self.voters.read(voter_address).is_registered;
             voter_is_registered
         }
 
-        //winning candidate 
         fn winner(self: @ContractState) -> Candidate {
-            //who should call this
             self.only_owner();
 
             let mut highest_votes = 0;
@@ -192,12 +178,10 @@ pub mod Voting {
             }
         }
 
-        //get owner
         fn get_owner(self: @ContractState) -> ContractAddress {
             self.owner.read()
         }
 
-        //ownership ransfer
         fn transfer_ownership(ref self: ContractState, new_owner: ContractAddress) {
             self.only_owner();
 
